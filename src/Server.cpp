@@ -65,7 +65,9 @@ int main(int argc, char **argv) {
   struct sockaddr_in client_addr;
   int client_addr_len = sizeof(client_addr);
 
-  int client_fd;
+  std::cout << "Waiting for a client to connect...\n" << std::endl;
+
+  int client_fd{};
   std::thread t;
 
   while (true) {

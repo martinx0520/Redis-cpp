@@ -62,13 +62,16 @@ int main(int argc, char **argv) {
   char buffer[1024] = {0};
   const char *resp = "+PONG\r\n";
 
-  int recvStatus = recv(client_fd, buffer, sizeof(buffer), 0);
-  if (recvStatus < 0) {
-    std::cerr << "Failed to receive from socket\n";
-  }
-  std::cout << "Message from client: " << buffer << std::endl;
+  while (true) {
+    int recvStatus = recv(client_fd, buffer, sizeof(buffer), 0);
+    if (recvStatus < 0) {
+      std::cerr << "Failed to receive from socket\n";
+      break;
+    }
+    std::cout << "Message from client: " << buffer << std::endl;
 
-  send(client_fd, resp, strlen(resp), 0);
+    send(client_fd, resp, strlen(resp), 0);
+  }
 
   close(client_fd);
   close(server_fd);

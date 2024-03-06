@@ -3,12 +3,12 @@
 #include <cstring>
 #include <iostream>
 #include <netdb.h>
-#include <pthread.h>
 #include <string>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <thread>
 #include <unistd.h>
+#include <vector>
 
 void request_handler(int client_fd) {
   char buffer[1024] = {0};
@@ -56,7 +56,7 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  int connection_backlog = 50;
+  int connection_backlog = 5;
   if (listen(server_fd, connection_backlog) != 0) {
     std::cerr << "listen failed\n";
     return 1;
@@ -64,23 +64,24 @@ int main(int argc, char **argv) {
 
   struct sockaddr_in client_addr;
   int client_addr_len = sizeof(client_addr);
+  std::vector<std::thread> threads;
 
   std::cout << "Waiting for a client to connect...\n" << std::endl;
 
-  int client_fd{};
-  std::thread t;
-
   while (true) {
-    client_fd = accept(server_fd, (struct sockaddr *)&client_addr,
-                       (socklen_t *)&client_addr_len);
+    int client_fd = accept(server_fd, (struct sockaddr *)&client_addr,
+                           (socklen_t *)&client_addr_len);
     if (client_fd < 0) {
       std::cerr << "Failed to establish a connection\n";
-      continue;
+      break;
     }
     std::cout << "Client connection established" << std::endl;
 
-    t = std::thread(request_handler, client_fd);
-    t.detach();
+    threads.emplace_back(request_handler, client_fd);
+  }
+
+  for (auto &t : threads) {
+    t.join();
   }
 
   close(server_fd);

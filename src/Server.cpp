@@ -10,14 +10,19 @@
 #include <unistd.h>
 #include <vector>
 
+const char *resp = "+PONG\r\n";
+
 void request_handler(int client_fd) {
   char buffer[1024] = {0};
-  const char *resp = "+PONG\r\n";
 
   while (true) {
     int recvStatus = recv(client_fd, buffer, sizeof(buffer), 0);
     if (recvStatus < 0) {
       std::cerr << "Failed to receive from socket\n";
+      break;
+    }
+    if (recvStatus == 0) {
+      std::cout << "Client " << client_fd << " disconnected\n";
       break;
     }
     std::cout << "Message from client: " << buffer << std::endl;

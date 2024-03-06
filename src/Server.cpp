@@ -21,10 +21,7 @@ void request_handler(int client_fd) {
       std::cerr << "Failed to receive from socket\n";
       break;
     }
-    if (recvStatus == 0) {
-      std::cout << "Client " << client_fd << " disconnected\n";
-      break;
-    }
+  
     std::cout << "Message from client: " << buffer << std::endl;
 
     send(client_fd, resp, strlen(resp), 0);

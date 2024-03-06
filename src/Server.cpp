@@ -3,17 +3,32 @@
 #include <cstring>
 #include <iostream>
 #include <netdb.h>
+#include <pthread.h>
 #include <string>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <thread>
 #include <unistd.h>
 
-int main(int argc, char **argv) {
-  // You can use print statements as follows for debugging, they'll be visible
-  // when running tests.
-  std::cout << "Logs from your program will appear here!\n";
+void request_handler(int client_fd) {
+  char buffer[1024] = {0};
+  const char *resp = "+PONG\r\n";
 
-  // Uncomment this block to pass the first stage
+  while (true) {
+    int recvStatus = recv(client_fd, buffer, sizeof(buffer), 0);
+    if (recvStatus < 0) {
+      std::cerr << "Failed to receive from socket\n";
+      break;
+    }
+    std::cout << "Message from client: " << buffer << std::endl;
+
+    send(client_fd, resp, strlen(resp), 0);
+  }
+
+  close(client_fd);
+}
+
+int main(int argc, char **argv) {
 
   int server_fd = socket(AF_INET, SOCK_STREAM, 0);
   if (server_fd < 0) {
@@ -41,7 +56,7 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  int connection_backlog = 5;
+  int connection_backlog = 50;
   if (listen(server_fd, connection_backlog) != 0) {
     std::cerr << "listen failed\n";
     return 1;
@@ -50,30 +65,22 @@ int main(int argc, char **argv) {
   struct sockaddr_in client_addr;
   int client_addr_len = sizeof(client_addr);
 
-  std::cout << "Waiting for a client to connect...\n";
-
-  int client_fd = accept(server_fd, (struct sockaddr *)&client_addr,
-                         (socklen_t *)&client_addr_len);
-  if (client_fd < 0) {
-    std::cerr << "Failed to accept from client\n";
-  }
-  std::cout << "Client connection established" << std::endl;
-
-  char buffer[1024] = {0};
-  const char *resp = "+PONG\r\n";
+  int client_fd;
+  std::thread t;
 
   while (true) {
-    int recvStatus = recv(client_fd, buffer, sizeof(buffer), 0);
-    if (recvStatus < 0) {
-      std::cerr << "Failed to receive from socket\n";
-      break;
+    client_fd = accept(server_fd, (struct sockaddr *)&client_addr,
+                       (socklen_t *)&client_addr_len);
+    if (client_fd < 0) {
+      std::cerr << "Failed to establish a connection\n";
+      continue;
     }
-    std::cout << "Message from client: " << buffer << std::endl;
+    std::cout << "Client connection established" << std::endl;
 
-    send(client_fd, resp, strlen(resp), 0);
+    t = std::thread(request_handler, client_fd);
+    t.detach();
   }
 
-  close(client_fd);
   close(server_fd);
 
   return 0;

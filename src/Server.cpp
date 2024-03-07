@@ -8,7 +8,6 @@
 #include <sys/types.h>
 #include <thread>
 #include <unistd.h>
-#include <vector>
 
 const char *resp = "+PONG\r\n";
 
@@ -21,7 +20,7 @@ void request_handler(int client_fd) {
       std::cerr << "Failed to receive from socket\n";
       break;
     }
-  
+
     std::cout << "Message from client: " << buffer << std::endl;
 
     send(client_fd, resp, strlen(resp), 0);
@@ -66,7 +65,6 @@ int main(int argc, char **argv) {
 
   struct sockaddr_in client_addr;
   int client_addr_len = sizeof(client_addr);
-  std::vector<std::thread> threads;
 
   std::cout << "Waiting for a client to connect...\n" << std::endl;
 
@@ -79,11 +77,8 @@ int main(int argc, char **argv) {
     }
     std::cout << "Client connection established" << std::endl;
 
-    threads.emplace_back(request_handler, client_fd);
-  }
-
-  for (auto &t : threads) {
-    t.join();
+    auto t = std::thread(request_handler, client_fd);
+    t.detach();
   }
 
   close(server_fd);

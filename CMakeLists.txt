@@ -7,4 +7,4 @@ set(SOURCE_FILES src/Server.cpp)
 add_executable(server ${SOURCE_FILES})
 
 find_package(Threads REQUIRED)
-target_link_libraries(mytarget PRIVATE Threads::Threads)
+target_link_libraries(server PRIVATE Threads::Threads)

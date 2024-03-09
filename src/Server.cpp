@@ -1,16 +1,77 @@
+#include <algorithm>
 #include <arpa/inet.h>
+#include <cctype>
+#include <cstddef>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <map>
 #include <netdb.h>
 #include <string>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <thread>
 #include <unistd.h>
+#include <utility>
 #include <vector>
 
-const char *resp = "+PONG\r\n";
+const char DOLLAR_SIGN = '$';
+const char ASTERISK_SIGN = '*';
+const char PLUS_SIGN = '+';
+const char MINUS_SIGN = '-';
+const char COLON_SIGN = ':';
+
+const std::string delim = "\r\n";
+
+// std::map<std::string, std::pair<std::string, std::string>> mp;
+
+void parse_Array(char *msg, int client_fd) {
+  std::string command_Str(msg), word;
+  std::vector<std::string> parsed_Arr;
+
+  size_t pos_st = 0, pos_ed, delim_len = delim.length();
+  while ((pos_ed = command_Str.find(delim, pos_st)) != std::string::npos) {
+    word = command_Str.substr(pos_st, pos_ed - pos_st);
+    pos_st = pos_ed + delim_len;
+
+    std::transform(word.begin(), word.end(), word.begin(), ::tolower);
+    parsed_Arr.push_back(word);
+  }
+  parsed_Arr.push_back(command_Str.substr(pos_st));
+
+  char *return_msg{};
+  if (parsed_Arr[2] == "ping") {
+    return_msg = (char *)"+PONG\r\n";
+  } else if (parsed_Arr[2] == "echo") {
+    std::string response = parsed_Arr[3] + delim + parsed_Arr[4] + delim;
+    return_msg = (char *)response.c_str();
+  } else {
+    return_msg = (char *)"+\r\n";
+  }
+
+  std::cout << "Response from client: " << return_msg << std::endl;
+
+  send(client_fd, return_msg, strlen(return_msg), 0);
+}
+
+void parse_msg(char *msg, int client_fd) {
+  char fb = msg[0];
+  switch (fb) {
+  case DOLLAR_SIGN:
+    return;
+  case ASTERISK_SIGN:
+    parse_Array(msg, client_fd);
+  case PLUS_SIGN:
+    return;
+  case MINUS_SIGN:
+    return;
+  case COLON_SIGN:
+    return;
+  default:
+    std::cerr << "Not a Redis Command\n";
+    return;
+  }
+}
 
 void request_handler(int client_fd) {
   char buffer[1024] = {0};
@@ -24,7 +85,7 @@ void request_handler(int client_fd) {
 
     std::cout << "Message from client: " << buffer << std::endl;
 
-    send(client_fd, resp, strlen(resp), 0);
+    parse_msg(buffer, client_fd);
   }
 
   close(client_fd);

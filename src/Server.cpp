@@ -39,7 +39,7 @@ void parse_Array(char *msg, int client_fd) {
   }
   parsed_Arr.push_back(command_Str.substr(pos_st));
 
-  char *return_msg;
+  char *return_msg{};
   if (parsed_Arr[2] == "ping") {
     return_msg = (char *)"+PONG\r\n";
   } else if (parsed_Arr[2] == "echo") {

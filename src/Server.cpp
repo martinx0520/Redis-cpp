@@ -60,6 +60,8 @@ void parse_Array(char *msg, int client_fd) {
     return_msg = (char *)"+\r\n";
   }
 
+  std::cout << "Response from client: " << return_msg << std::endl;
+
   send(client_fd, return_msg, strlen(return_msg), 0);
 }
 

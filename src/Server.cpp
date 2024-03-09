@@ -23,7 +23,7 @@ const char COLON_SIGN = ':';
 
 const std::string delim = "\r\n";
 
-// std::map<std::string, std::pair<std::string, std::string>> mp;
+std::map<std::string, std::pair<std::string, std::string>> mp;
 
 void parse_Array(char *msg, int client_fd) {
   std::string command_Str(msg), word;
@@ -45,6 +45,17 @@ void parse_Array(char *msg, int client_fd) {
   } else if (parsed_Arr[2] == "echo") {
     std::string response = parsed_Arr[3] + delim + parsed_Arr[4] + delim;
     return_msg = (char *)response.c_str();
+  } else if (parsed_Arr[2] == "set") {
+    mp[parsed_Arr[4]] = {parsed_Arr[5], parsed_Arr[6]};
+    return_msg = (char *)"+OK\r\n";
+  } else if (parsed_Arr[2] == "get") {
+    if (mp.count(parsed_Arr[4])) {
+      auto p = mp[parsed_Arr[4]];
+      std::string response = p.first + delim + p.second + delim;
+      return_msg = (char *)response.c_str();
+    } else {
+      return_msg = (char *)"$-1\r\n";
+    }
   } else {
     return_msg = (char *)"+\r\n";
   }

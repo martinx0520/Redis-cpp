@@ -24,8 +24,8 @@ const char COLON_SIGN = ':';
 const std::string delim = "\r\n";
 
 struct Entry {
-  std::string value;
   std::string length;
+  std::string value;
   long long expiry;
 };
 

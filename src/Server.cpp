@@ -59,7 +59,7 @@ void parse_Array(char *msg, int client_fd) {
     return_msg = (char *)response.c_str();
   } else if (parsed_Arr[2] == "set") {
     mp[parsed_Arr[4]] = {parsed_Arr[5], parsed_Arr[6]};
-    if (parsed_Arr.size() > 6 && parsed_Arr[8] == "px") {
+    if (parsed_Arr.size() > 7 && parsed_Arr[8] == "px") {
       mp[parsed_Arr[4]].expiry = get_time() + std::stoll(parsed_Arr[10]);
     }
     return_msg = (char *)"+OK\r\n";

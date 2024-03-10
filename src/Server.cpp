@@ -122,7 +122,7 @@ void request_handler(int client_fd) {
   close(client_fd);
 }
 
-int main(int argc, char **argv) {
+int main() {
 
   int server_fd = socket(AF_INET, SOCK_STREAM, 0);
   if (server_fd < 0) {
@@ -158,7 +158,7 @@ int main(int argc, char **argv) {
 
   struct sockaddr_in client_addr;
   int client_addr_len = sizeof(client_addr);
-  std::thread t;
+  std::vector<std::thread> threads;
 
   std::cout << "Waiting for a client to connect...\n" << std::endl;
 
@@ -171,8 +171,10 @@ int main(int argc, char **argv) {
     }
     std::cout << "Client connection established" << std::endl;
 
-    t = std::thread(request_handler, client_fd);
-    t.detach();
+    threads.emplace_back(request_handler, client_fd);
+  }
+  for (auto &t : threads) {
+    t.join();
   }
 
   close(server_fd);

@@ -91,7 +91,6 @@ void parse_msg(char *msg, int client_fd) {
   case DOLLAR_SIGN:
     return;
   case ASTERISK_SIGN:
-    std::cout << "parsing array" << std::endl;
     parse_Array(msg, client_fd);
   case PLUS_SIGN:
     return;

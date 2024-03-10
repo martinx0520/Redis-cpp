@@ -158,7 +158,6 @@ int main(int argc, char **argv) {
 
   struct sockaddr_in client_addr;
   int client_addr_len = sizeof(client_addr);
-  std::vector<std::thread> threads;
 
   std::cout << "Waiting for a client to connect...\n" << std::endl;
 
@@ -171,11 +170,8 @@ int main(int argc, char **argv) {
     }
     std::cout << "Client connection established" << std::endl;
 
-    threads.emplace_back(request_handler, client_fd);
-  }
-
-  for (auto &t : threads) {
-    t.join();
+    std::thread t = std::thread(request_handler, client_fd);
+    t.detach();
   }
 
   close(server_fd);

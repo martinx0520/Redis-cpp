@@ -158,6 +158,7 @@ int main(int argc, char **argv) {
 
   struct sockaddr_in client_addr;
   int client_addr_len = sizeof(client_addr);
+  std::thread t;
 
   std::cout << "Waiting for a client to connect...\n" << std::endl;
 
@@ -170,7 +171,7 @@ int main(int argc, char **argv) {
     }
     std::cout << "Client connection established" << std::endl;
 
-    std::thread t = std::thread(request_handler, client_fd);
+    t = std::thread(request_handler, client_fd);
     t.detach();
   }
 

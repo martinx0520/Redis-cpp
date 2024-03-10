@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <arpa/inet.h>
 #include <cctype>
+#include <chrono>
 #include <cstddef>
 #include <cstdlib>
 #include <cstring>
@@ -12,7 +13,6 @@
 #include <sys/types.h>
 #include <thread>
 #include <unistd.h>
-#include <utility>
 #include <vector>
 
 const char DOLLAR_SIGN = '$';
@@ -23,7 +23,19 @@ const char COLON_SIGN = ':';
 
 const std::string delim = "\r\n";
 
-std::map<std::string, std::pair<std::string, std::string>> mp;
+struct Entry {
+  std::string value;
+  std::string length;
+  long long expiry;
+};
+
+long long get_time() {
+  using namespace std::chrono;
+  return duration_cast<milliseconds>(system_clock::now().time_since_epoch())
+      .count();
+}
+
+std::map<std::string, Entry> mp;
 
 void parse_Array(char *msg, int client_fd) {
   std::string command_Str(msg), word;
@@ -47,11 +59,22 @@ void parse_Array(char *msg, int client_fd) {
     return_msg = (char *)response.c_str();
   } else if (parsed_Arr[2] == "set") {
     mp[parsed_Arr[4]] = {parsed_Arr[5], parsed_Arr[6]};
+    if (parsed_Arr.size() == 10 && parsed_Arr[8] == "px") {
+      mp[parsed_Arr[4]].expiry = get_time() + std::stoll(parsed_Arr[10]);
+    }
     return_msg = (char *)"+OK\r\n";
   } else if (parsed_Arr[2] == "get") {
     if (mp.count(parsed_Arr[4])) {
-      auto p = mp[parsed_Arr[4]];
-      std::string response = p.first + delim + p.second + delim;
+      if (mp[parsed_Arr[4]].expiry && get_time() >= mp[parsed_Arr[4]].expiry) {
+        mp.erase(parsed_Arr[4]);
+        return_msg = (char *)"$-1\r\n";
+      } else {
+        auto e = mp[parsed_Arr[4]];
+        std::string response = e.length + delim + e.value + delim;
+        return_msg = (char *)response.c_str();
+      }
+      auto e = mp[parsed_Arr[4]];
+      std::string response = e.length + delim + e.value + delim;
       return_msg = (char *)response.c_str();
     } else {
       return_msg = (char *)"$-1\r\n";

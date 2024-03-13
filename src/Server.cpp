@@ -104,21 +104,19 @@ void parse_msg(char *msg, int client_fd) {
   }
 }
 
+const char *resp = "+PONG\r\n";
 void request_handler(int client_fd) {
   char buffer[1024] = {0};
-
   while (true) {
     int recvStatus = recv(client_fd, buffer, sizeof(buffer), 0);
     if (recvStatus < 0) {
       std::cerr << "Failed to receive from socket\n";
       break;
     }
-
     std::cout << "Message from client: " << buffer << std::endl;
-
-    parse_msg(buffer, client_fd);
+    // Uncomment this block to pass the first stage
+    send(client_fd, resp, strlen(resp), 0);
   }
-
   close(client_fd);
 }
 

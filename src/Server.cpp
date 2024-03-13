@@ -171,7 +171,7 @@ int main() {
     }
     std::cout << "Client connection established" << std::endl;
 
-    t = std::thread(request_handler, client_fd);
+    t = std::thread(&request_handler, client_fd);
     t.detach();
   }
 

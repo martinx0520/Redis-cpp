@@ -49,7 +49,9 @@ void parse_Array(char *msg, int client_fd) {
     std::transform(word.begin(), word.end(), word.begin(), ::tolower);
     parsed_Arr.push_back(word);
   }
-  parsed_Arr.push_back(command_Str.substr(pos_st));
+
+  std::cout << "corresponding commands " << parsed_Arr[2] << " length "
+            << parsed_Arr.size() << std::endl;
 
   char *return_msg{};
   if (parsed_Arr[2] == "ping") {
@@ -69,6 +71,7 @@ void parse_Array(char *msg, int client_fd) {
         mp.erase(parsed_Arr[4]);
         return_msg = (char *)"$-1\r\n";
       } else {
+        std::cout << "key unexpired" << std::endl;
         auto e = mp[parsed_Arr[4]];
         std::string response = e.length + delim + e.value + delim;
         return_msg = (char *)response.c_str();
@@ -80,9 +83,10 @@ void parse_Array(char *msg, int client_fd) {
     return_msg = (char *)"+\r\n";
   }
 
-  std::cout << "Response from client: " << return_msg << std::endl;
-
-  send(client_fd, return_msg, strlen(return_msg), 0);
+  std::cout << "Response from client" << client_fd << " : " << return_msg
+            << " length " << strlen(return_msg) << std::endl;
+  std::cout << "Bytes sent: "
+            << send(client_fd, return_msg, strlen(return_msg), 0) << std::endl;
 }
 
 void parse_msg(char *msg, int client_fd) {
@@ -158,7 +162,6 @@ int main() {
 
   struct sockaddr_in client_addr;
   int client_addr_len = sizeof(client_addr);
-  std::vector<std::thread> threads;
 
   std::cout << "Waiting for a client to connect...\n" << std::endl;
 
@@ -171,12 +174,10 @@ int main() {
     }
     std::cout << "Client connection established" << std::endl;
 
-    threads.emplace_back(request_handler, client_fd);
+    std::thread t(request_handler, client_fd);
+    t.detach();
   }
 
-  for (auto &th : threads) {
-    th.join();
-  }
   close(server_fd);
 
   return 0;

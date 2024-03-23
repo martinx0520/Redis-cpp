@@ -1,8 +1,8 @@
 #include "Parser.hpp"
 #include <arpa/inet.h>
+#include <asm-generic/socket.h>
 #include <csignal>
 #include <iostream>
-#include <map>
 #include <netdb.h>
 #include <string>
 #include <sys/socket.h>
@@ -10,7 +10,7 @@
 #include <thread>
 #include <unistd.h>
 
-void request_handler(std::map<std::string, Entry> mp, int client_fd) {
+void request_handler(CommandLineEntry &cliEntry, int client_fd) {
   char buffer[1024] = {0};
 
   while (true) {
@@ -24,7 +24,7 @@ void request_handler(std::map<std::string, Entry> mp, int client_fd) {
 
     std::cout << "Message from client: " << buffer << std::endl;
 
-    parse_msg(buffer, mp, client_fd);
+    parse_msg(buffer, cliEntry, client_fd);
   }
 
   close(client_fd);
@@ -43,23 +43,36 @@ int main(int argc, char *argv[]) {
   int reuse = 1;
   if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEPORT, &reuse, sizeof(reuse)) <
       0) {
-    std::cerr << "setsockopt failed\n";
+    std::cerr << "setsockopt(SO_REUSEPORT) failed\n";
     return 1;
   }
 
-  int hostPort = 6379;
-  if (argc > 2 && std::string(argv[1]) == "--port") {
-    hostPort = std::stoi(argv[2]);
+  int enable = 1;
+  if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(enable)) <
+      0) {
+    std::cerr << "setsockopt(SO_REUSEADDR) failed\n";
+    return 1;
+  }
+
+  struct CommandLineEntry cliEntry;
+  for (int i = 0; i < argc; ++i) {
+    if (argc >= 3 && i == 1 && std::string(argv[i]) == "--port") {
+      cliEntry.hostPort = std::stoi(argv[i + 1]);
+    }
+    if (argc >= 6 && i == 3 && std::string(argv[i]) == "--replicaof") {
+      cliEntry.masterPort = std::stoi(argv[i + 2]);
+      cliEntry.role = "slave";
+    }
   }
 
   struct sockaddr_in server_addr;
   server_addr.sin_family = AF_INET;
   server_addr.sin_addr.s_addr = INADDR_ANY;
-  server_addr.sin_port = htons(hostPort);
+  server_addr.sin_port = htons(cliEntry.hostPort);
 
   if (bind(server_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) !=
       0) {
-    std::cerr << "Failed to bind to port " << hostPort << "\n";
+    std::cerr << "Failed to bind to port " << cliEntry.hostPort << "\n";
     return 1;
   }
 
@@ -71,7 +84,6 @@ int main(int argc, char *argv[]) {
 
   struct sockaddr_in client_addr;
   int client_addr_len = sizeof(client_addr);
-  std::map<std::string, Entry> mp;
 
   std::cout << "Waiting for a client to connect...\n" << std::endl;
 
@@ -84,7 +96,7 @@ int main(int argc, char *argv[]) {
     }
     std::cout << "Client connection established" << std::endl;
 
-    std::thread t(request_handler, std::ref(mp), client_fd);
+    std::thread t(request_handler, std::ref(cliEntry), client_fd);
     t.detach();
   }
 

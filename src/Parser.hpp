@@ -10,8 +10,15 @@ struct Entry {
   long long expiry;
 };
 
-void parse_msg(char *msg, std::map<std::string, Entry> &mp, int client_fd);
+struct CommandLineEntry {
+  std::map<std::string, Entry> mp;
+  int hostPort = 6379;
+  int masterPort = -1;
+  std::string role = "master";
+};
 
-void parse_Array(char *msg, std::map<std::string, Entry> &mp, int client_fd);
+void parse_msg(char *msg, CommandLineEntry &cliEntry, int client_fd);
+
+void parse_Array(char *msg, CommandLineEntry &cliEntry, int client_fd);
 
 #endif

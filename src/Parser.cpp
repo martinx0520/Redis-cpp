@@ -14,6 +14,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <utility>
 #include <vector>
 
 const char DOLLAR_SIGN = '$';
@@ -30,7 +31,7 @@ long long get_time() {
       .count();
 }
 
-void parse_Array(char *msg, std::map<std::string, Entry> &mp, int client_fd) {
+void parse_Array(char *msg, CommandLineEntry &cliEntry, int client_fd) {
   std::string command_Str(msg), word;
   std::vector<std::string> parsed_Arr;
 
@@ -50,28 +51,35 @@ void parse_Array(char *msg, std::map<std::string, Entry> &mp, int client_fd) {
   } else if (parsed_Arr[2] == "echo") {
     return_msg = parsed_Arr[3] + delim + parsed_Arr[4] + delim;
   } else if (parsed_Arr[2] == "set") {
-    mp[parsed_Arr[4]] = {parsed_Arr[5], parsed_Arr[6]};
+    cliEntry.mp[parsed_Arr[4]] = {parsed_Arr[5], parsed_Arr[6]};
     if (arrLen > 7 && parsed_Arr[8] == "px") {
-      mp[parsed_Arr[4]].expiry = get_time() + std::stoll(parsed_Arr[10]);
+      cliEntry.mp[parsed_Arr[4]].expiry =
+          get_time() + std::stoll(parsed_Arr[10]);
     }
     return_msg = "+OK\r\n";
   } else if (parsed_Arr[2] == "get") {
-    if (mp.count(parsed_Arr[4])) {
-      if (mp[parsed_Arr[4]].expiry && get_time() >= mp[parsed_Arr[4]].expiry) {
-        mp.erase(parsed_Arr[4]);
+    if (cliEntry.mp.count(parsed_Arr[4])) {
+      if (cliEntry.mp[parsed_Arr[4]].expiry &&
+          get_time() >= cliEntry.mp[parsed_Arr[4]].expiry) {
+        cliEntry.mp.erase(parsed_Arr[4]);
         return_msg = "$-1\r\n";
       } else {
-        auto e = mp[parsed_Arr[4]];
+        auto e = cliEntry.mp[parsed_Arr[4]];
         return_msg = e.length + delim + e.value + delim;
       }
     } else {
       return_msg = "$-1\r\n";
     }
   } else if (parsed_Arr[2] == "info") {
-    std::vector<std::string> responses;
+    std::vector<std::pair<std::string, std::string>> fields;
     if (parsed_Arr[4] == "replication") {
-      responses = {"$11", "role:master"};
-      return_msg = responses[0] + delim + responses[1] + delim;
+      fields.push_back({"role", cliEntry.role});
+      for (auto p : fields) {
+        return_msg += "$" +
+                      std::to_string(p.first.length() + p.second.length() + 1) +
+                      delim;
+        return_msg += p.first + ":" + p.second + delim;
+      }
     } else {
       return_msg = "+\r\n";
     }
@@ -86,13 +94,13 @@ void parse_Array(char *msg, std::map<std::string, Entry> &mp, int client_fd) {
             << std::endl;
 }
 
-void parse_msg(char *msg, std::map<std::string, Entry> &mp, int client_fd) {
+void parse_msg(char *msg, CommandLineEntry &cliEntry, int client_fd) {
   char fb = msg[0];
   switch (fb) {
   case DOLLAR_SIGN:
     return;
   case ASTERISK_SIGN:
-    parse_Array(msg, mp, client_fd);
+    parse_Array(msg, cliEntry, client_fd);
   case PLUS_SIGN:
     return;
   case MINUS_SIGN:

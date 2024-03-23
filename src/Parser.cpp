@@ -44,51 +44,46 @@ void parse_Array(char *msg, std::map<std::string, Entry> &mp, int client_fd) {
   }
 
   int arrLen = parsed_Arr.size();
-  char *return_msg{};
+  std::string return_msg{};
   if (parsed_Arr[2] == "ping") {
-    return_msg = (char *)"+PONG\r\n";
+    return_msg = "+PONG\r\n";
   } else if (parsed_Arr[2] == "echo") {
-    std::string response = parsed_Arr[3] + delim + parsed_Arr[4] + delim;
-    return_msg = (char *)response.c_str();
+    return_msg = parsed_Arr[3] + delim + parsed_Arr[4] + delim;
   } else if (parsed_Arr[2] == "set") {
     mp[parsed_Arr[4]] = {parsed_Arr[5], parsed_Arr[6]};
     if (arrLen > 7 && parsed_Arr[8] == "px") {
       mp[parsed_Arr[4]].expiry = get_time() + std::stoll(parsed_Arr[10]);
     }
-    return_msg = (char *)"+OK\r\n";
+    return_msg = "+OK\r\n";
   } else if (parsed_Arr[2] == "get") {
     if (mp.count(parsed_Arr[4])) {
       if (mp[parsed_Arr[4]].expiry && get_time() >= mp[parsed_Arr[4]].expiry) {
         mp.erase(parsed_Arr[4]);
-        return_msg = (char *)"$-1\r\n";
+        return_msg = "$-1\r\n";
       } else {
         auto e = mp[parsed_Arr[4]];
-        std::string get_response = e.length + delim + e.value + delim;
-        return_msg = (char *)get_response.c_str();
+        return_msg = e.length + delim + e.value + delim;
       }
     } else {
-      return_msg = (char *)"$-1\r\n";
+      return_msg = "$-1\r\n";
     }
   } else if (parsed_Arr[2] == "info") {
     std::vector<std::string> responses;
     if (parsed_Arr[4] == "replication") {
-      responses = {"$11", "# replication", "role:master"};
-      std::string info_response = std::accumulate(
-          std::begin(responses), std::end(responses), std::string(),
-          [](std::string ss, std::string s) { return ss + delim + s; });
-      return_msg = (char *)info_response.c_str();
-      std::cout << "joined msg: " << return_msg << std::endl;
+      responses = {"$11", "role:master"};
+      return_msg = responses[0] + delim + responses[1] + delim;
     } else {
-      return_msg = (char *)"+\r\n";
+      return_msg = "+\r\n";
     }
   } else {
-    return_msg = (char *)"+\r\n";
+    return_msg = "+\r\n";
   }
 
   std::cout << "Response from client"
-            << ": " << return_msg << " length " << strlen(return_msg)
+            << ": " << return_msg << " length " << return_msg.length()
             << std::endl;
-  std::cout << send(client_fd, return_msg, strlen(return_msg), 0) << std::endl;
+  std::cout << send(client_fd, return_msg.c_str(), return_msg.length(), 0)
+            << std::endl;
 }
 
 void parse_msg(char *msg, std::map<std::string, Entry> &mp, int client_fd) {

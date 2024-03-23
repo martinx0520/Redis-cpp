@@ -1,5 +1,6 @@
 #include "Parser.hpp"
 #include <arpa/inet.h>
+#include <csignal>
 #include <iostream>
 #include <map>
 #include <netdb.h>
@@ -17,6 +18,8 @@ void request_handler(std::map<std::string, Entry> mp, int client_fd) {
     if (recvStatus < 0) {
       std::cerr << "Failed to receive from socket\n";
       break;
+    } else if (recvStatus == 0) {
+      break;
     }
 
     std::cout << "Message from client: " << buffer << std::endl;
@@ -28,7 +31,7 @@ void request_handler(std::map<std::string, Entry> mp, int client_fd) {
 }
 
 int main(int argc, char *argv[]) {
-
+  signal(SIGPIPE, SIG_IGN);
   int server_fd = socket(AF_INET, SOCK_STREAM, 0);
   if (server_fd < 0) {
     std::cerr << "Failed to create server socket\n";

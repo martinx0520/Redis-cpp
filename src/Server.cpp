@@ -1,10 +1,5 @@
-#include <algorithm>
+#include "Parser.hpp"
 #include <arpa/inet.h>
-#include <cctype>
-#include <chrono>
-#include <cstddef>
-#include <cstdlib>
-#include <cstring>
 #include <iostream>
 #include <map>
 #include <netdb.h>
@@ -13,101 +8,8 @@
 #include <sys/types.h>
 #include <thread>
 #include <unistd.h>
-#include <vector>
 
-const char DOLLAR_SIGN = '$';
-const char ASTERISK_SIGN = '*';
-const char PLUS_SIGN = '+';
-const char MINUS_SIGN = '-';
-const char COLON_SIGN = ':';
-
-const std::string delim = "\r\n";
-
-struct Entry {
-  std::string length;
-  std::string value;
-  long long expiry;
-};
-
-long long get_time() {
-  using namespace std::chrono;
-  return duration_cast<milliseconds>(system_clock::now().time_since_epoch())
-      .count();
-}
-
-std::map<std::string, Entry> mp;
-
-void parse_Array(char *msg, int client_fd) {
-  std::string command_Str(msg), word;
-  std::vector<std::string> parsed_Arr;
-
-  size_t pos_st = 0, pos_ed, delim_len = delim.length();
-  while ((pos_ed = command_Str.find(delim, pos_st)) != std::string::npos) {
-    word = command_Str.substr(pos_st, pos_ed - pos_st);
-    pos_st = pos_ed + delim_len;
-
-    std::transform(word.begin(), word.end(), word.begin(), ::tolower);
-    parsed_Arr.push_back(word);
-  }
-
-  std::cout << "corresponding commands " << parsed_Arr[2] << " length "
-            << parsed_Arr.size() << std::endl;
-
-  char *return_msg{};
-  if (parsed_Arr[2] == "ping") {
-    return_msg = (char *)"+PONG\r\n";
-  } else if (parsed_Arr[2] == "echo") {
-    std::string response = parsed_Arr[3] + delim + parsed_Arr[4] + delim;
-    return_msg = (char *)response.c_str();
-  } else if (parsed_Arr[2] == "set") {
-    mp[parsed_Arr[4]] = {parsed_Arr[5], parsed_Arr[6]};
-    if (parsed_Arr.size() > 7 && parsed_Arr[8] == "px") {
-      mp[parsed_Arr[4]].expiry = get_time() + std::stoll(parsed_Arr[10]);
-    }
-    return_msg = (char *)"+OK\r\n";
-  } else if (parsed_Arr[2] == "get") {
-    if (mp.count(parsed_Arr[4])) {
-      if (mp[parsed_Arr[4]].expiry && get_time() >= mp[parsed_Arr[4]].expiry) {
-        mp.erase(parsed_Arr[4]);
-        return_msg = (char *)"$-1\r\n";
-      } else {
-        auto e = mp[parsed_Arr[4]];
-        std::string response = e.length + delim + e.value + delim;
-        return_msg = (char *)response.c_str();
-      }
-    } else {
-      return_msg = (char *)"$-1\r\n";
-    }
-  } else {
-    return_msg = (char *)"+\r\n";
-  }
-
-  std::cout << "Response from client" << client_fd << " : " << return_msg
-            << " length " << strlen(return_msg) << std::endl;
-  std::cout << "Bytes sent: "
-            << send(client_fd, return_msg, strlen(return_msg), 0) << std::endl;
-}
-
-void parse_msg(char *msg, int client_fd) {
-  char fb = msg[0];
-  switch (fb) {
-  case DOLLAR_SIGN:
-    return;
-  case ASTERISK_SIGN:
-    parse_Array(msg, client_fd);
-  case PLUS_SIGN:
-    return;
-  case MINUS_SIGN:
-    return;
-  case COLON_SIGN:
-    return;
-  default:
-    std::cerr << "Not a Redis Command\n";
-    return;
-  }
-}
-
-void request_handler(int client_fd) {
+void request_handler(std::map<std::string, Entry> mp, int client_fd) {
   char buffer[1024] = {0};
 
   while (true) {
@@ -119,7 +21,7 @@ void request_handler(int client_fd) {
 
     std::cout << "Message from client: " << buffer << std::endl;
 
-    parse_msg(buffer, client_fd);
+    parse_msg(buffer, mp, client_fd);
   }
 
   close(client_fd);
@@ -166,6 +68,7 @@ int main(int argc, char *argv[]) {
 
   struct sockaddr_in client_addr;
   int client_addr_len = sizeof(client_addr);
+  std::map<std::string, Entry> mp;
 
   std::cout << "Waiting for a client to connect...\n" << std::endl;
 
@@ -178,7 +81,7 @@ int main(int argc, char *argv[]) {
     }
     std::cout << "Client connection established" << std::endl;
 
-    std::thread t(request_handler, client_fd);
+    std::thread t(request_handler, std::ref(mp), client_fd);
     t.detach();
   }
 

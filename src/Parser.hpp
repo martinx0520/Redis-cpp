@@ -15,6 +15,8 @@ struct CommandLineEntry {
   int hostPort = 6379;
   int masterPort = -1;
   std::string role = "master";
+  std::string master_replid = "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb";
+  int master_repl_offset = 0;
 };
 
 void parse_msg(char *msg, CommandLineEntry &cliEntry, int client_fd);

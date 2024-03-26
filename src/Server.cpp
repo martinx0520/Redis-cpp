@@ -1,6 +1,5 @@
 #include "Parser.hpp"
 #include <arpa/inet.h>
-#include <asm-generic/socket.h>
 #include <csignal>
 #include <iostream>
 #include <netdb.h>

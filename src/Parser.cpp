@@ -74,12 +74,15 @@ void parse_Array(char *msg, CommandLineEntry &cliEntry, int client_fd) {
     std::vector<std::pair<std::string, std::string>> fields;
     if (parsed_Arr[4] == "replication") {
       fields.push_back({"role", cliEntry.role});
+      fields.push_back({"master_replid", cliEntry.master_replid});
+      fields.push_back(
+          {"master_repl_offset", std::to_string(cliEntry.master_repl_offset)});
+      int len = 0;
       for (auto p : fields) {
-        return_msg += "$" +
-                      std::to_string(p.first.length() + p.second.length() + 1) +
-                      delim;
+        len += p.first.length() + p.second.length() + 3;
         return_msg += p.first + ":" + p.second + delim;
       }
+      return_msg = "$" + std::to_string(len - 2) + delim + return_msg;
     } else {
       return_msg = "+\r\n";
     }
@@ -88,7 +91,7 @@ void parse_Array(char *msg, CommandLineEntry &cliEntry, int client_fd) {
   }
 
   std::cout << "Response from client"
-            << ": " << return_msg << " length " << return_msg.length()
+            << ": " << return_msg << "length " << return_msg.length()
             << std::endl;
   std::cout << send(client_fd, return_msg.c_str(), return_msg.length(), 0)
             << std::endl;

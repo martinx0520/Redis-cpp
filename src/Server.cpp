@@ -59,8 +59,23 @@ int main(int argc, char *argv[]) {
       cliEntry.hostPort = std::stoi(argv[i + 1]);
     }
     if (argc >= 6 && i == 3 && std::string(argv[i]) == "--replicaof") {
+      cliEntry.masterHost =
+          (std::string(argv[i + 1]) == "localhost" ? "127.0.0.1"
+                                                   : std::string(argv[i + 1]));
       cliEntry.masterPort = std::stoi(argv[i + 2]);
       cliEntry.role = "slave";
+      struct sockaddr_in replica_addr;
+      replica_addr.sin_family = AF_INET;
+      replica_addr.sin_addr.s_addr = inet_addr(cliEntry.masterHost.c_str());
+      replica_addr.sin_port = htons(cliEntry.masterPort);
+
+      int master_fd = socket(AF_INET, SOCK_STREAM, 0);
+      std::cerr << "\n"
+                << connect(master_fd, (struct sockaddr *)&replica_addr,
+                           sizeof(replica_addr));
+      std::string ping{"*1\r\n$4\r\nping\r\n"};
+
+      send(master_fd, ping.c_str(), ping.size(), 0);
     }
   }
 

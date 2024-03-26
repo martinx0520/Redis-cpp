@@ -13,6 +13,7 @@ struct Entry {
 struct CommandLineEntry {
   std::map<std::string, Entry> mp;
   int hostPort = 6379;
+  std::string masterHost = "127.0.0.1";
   int masterPort = -1;
   std::string role = "master";
   std::string master_replid = "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb";

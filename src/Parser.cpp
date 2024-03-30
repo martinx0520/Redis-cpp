@@ -114,6 +114,10 @@ void parse_Array(char *msg, CommandLineEntry &cliEntry, int client_fd)
   {
     return_msg = "+OK\r\n";
   }
+  else if (parsed_Arr[2] == "psync")
+  {
+    return_msg = "+FULLRESYNC " + cliEntry.master_replid + " " + std::to_string(cliEntry.master_repl_offset) + delim;
+  }
   else
   {
     return_msg = "+\r\n";

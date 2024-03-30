@@ -8,16 +8,24 @@
 #include <sys/types.h>
 #include <thread>
 #include <unistd.h>
+#include <vector>
 
-void request_handler(CommandLineEntry &cliEntry, int client_fd) {
+const std::string delim = "\r\n";
+
+void request_handler(CommandLineEntry &cliEntry, int client_fd)
+{
   char buffer[1024] = {0};
 
-  while (true) {
+  while (true)
+  {
     int recvStatus = recv(client_fd, buffer, sizeof(buffer), 0);
-    if (recvStatus < 0) {
+    if (recvStatus < 0)
+    {
       std::cerr << "Failed to receive from socket\n";
       break;
-    } else if (recvStatus == 0) {
+    }
+    else if (recvStatus == 0)
+    {
       break;
     }
 
@@ -29,10 +37,12 @@ void request_handler(CommandLineEntry &cliEntry, int client_fd) {
   close(client_fd);
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
   signal(SIGPIPE, SIG_IGN);
   int server_fd = socket(AF_INET, SOCK_STREAM, 0);
-  if (server_fd < 0) {
+  if (server_fd < 0)
+  {
     std::cerr << "Failed to create server socket\n";
     return 1;
   }
@@ -41,24 +51,29 @@ int main(int argc, char *argv[]) {
   // // ensures that we don't run into 'Address already in use' errors
   int reuse = 1;
   if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEPORT, &reuse, sizeof(reuse)) <
-      0) {
+      0)
+  {
     std::cerr << "setsockopt(SO_REUSEPORT) failed\n";
     return 1;
   }
 
   int enable = 1;
   if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(enable)) <
-      0) {
+      0)
+  {
     std::cerr << "setsockopt(SO_REUSEADDR) failed\n";
     return 1;
   }
 
   struct CommandLineEntry cliEntry;
-  for (int i = 0; i < argc; ++i) {
-    if (argc >= 3 && i == 1 && std::string(argv[i]) == "--port") {
+  for (int i = 0; i < argc; ++i)
+  {
+    if (argc >= 3 && i == 1 && std::string(argv[i]) == "--port")
+    {
       cliEntry.hostPort = std::stoi(argv[i + 1]);
     }
-    if (argc >= 6 && i == 3 && std::string(argv[i]) == "--replicaof") {
+    if (argc >= 6 && i == 3 && std::string(argv[i]) == "--replicaof")
+    {
       cliEntry.masterHost =
           (std::string(argv[i + 1]) == "localhost" ? "127.0.0.1"
                                                    : std::string(argv[i + 1]));
@@ -73,9 +88,32 @@ int main(int argc, char *argv[]) {
       std::cerr << "\n"
                 << connect(master_fd, (struct sockaddr *)&replica_addr,
                            sizeof(replica_addr));
+      char hsBuffer[1024] = {0};
+
+      // Handshake part 1
       std::string ping{"*1\r\n$4\r\nping\r\n"};
 
       send(master_fd, ping.c_str(), ping.size(), 0);
+      int recv_msg = recv(master_fd, hsBuffer, sizeof(hsBuffer), 0);
+
+      // Handshake part 2
+      std::vector<std::string> replConf1{"REPLCONF", "listening-port",
+                                         std::to_string(cliEntry.hostPort)};
+      std::vector<std::string> replConf2{"REPLCONF", "capa", "psync2"};
+      std::string res_1 = "*3" + delim, res_2 = "*3" + delim;
+      for (auto s : replConf1)
+      {
+        res_1 += "$" + std::to_string(s.length()) + delim + s + delim;
+      }
+      for (auto s : replConf2)
+      {
+        res_2 += "$" + std::to_string(s.length()) + delim + s + delim;
+      }
+      send(master_fd, res_1.c_str(), res_1.size(), 0);
+      recv_msg = recv(master_fd, hsBuffer, sizeof(hsBuffer), 0);
+
+      send(master_fd, res_2.c_str(), res_2.size(), 0);
+      recv_msg = recv(master_fd, hsBuffer, sizeof(hsBuffer), 0);
     }
   }
 
@@ -85,13 +123,15 @@ int main(int argc, char *argv[]) {
   server_addr.sin_port = htons(cliEntry.hostPort);
 
   if (bind(server_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) !=
-      0) {
+      0)
+  {
     std::cerr << "Failed to bind to port " << cliEntry.hostPort << "\n";
     return 1;
   }
 
   int connection_backlog = 5;
-  if (listen(server_fd, connection_backlog) != 0) {
+  if (listen(server_fd, connection_backlog) != 0)
+  {
     std::cerr << "listen failed\n";
     return 1;
   }
@@ -99,12 +139,15 @@ int main(int argc, char *argv[]) {
   struct sockaddr_in client_addr;
   int client_addr_len = sizeof(client_addr);
 
-  std::cout << "Waiting for a client to connect...\n" << std::endl;
+  std::cout << "Waiting for a client to connect...\n"
+            << std::endl;
 
-  while (true) {
+  while (true)
+  {
     int client_fd = accept(server_fd, (struct sockaddr *)&client_addr,
                            (socklen_t *)&client_addr_len);
-    if (client_fd < 0) {
+    if (client_fd < 0)
+    {
       std::cerr << "Failed to establish a connection\n";
       break;
     }

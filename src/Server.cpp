@@ -114,6 +114,16 @@ int main(int argc, char *argv[])
 
       send(master_fd, res_2.c_str(), res_2.size(), 0);
       recv_msg = recv(master_fd, hsBuffer, sizeof(hsBuffer), 0);
+
+      // Handshake part 3
+      std::vector<std::string> psync{"PSYNC", "?", "-1"};
+      std::string res_psync = "*3" + delim;
+      for (auto s : psync)
+      {
+        res_psync += "$" + std::to_string(s.length()) + delim + s + delim;
+      }
+      send(master_fd, res_psync.c_str(), res_psync.size(), 0);
+      recv_msg = recv(master_fd, hsBuffer, sizeof(hsBuffer), 0);
     }
   }
 

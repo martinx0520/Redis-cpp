@@ -67,11 +67,14 @@ void parse_Array(char *msg, CommandLineEntry &cliEntry, int client_fd)
       cliEntry.mp[parsed_Arr[4]].expiry =
           get_time() + std::stoll(parsed_Arr[10]);
     }
-    for (auto r : cliEntry.replicas)
+    if (client_fd != cliEntry.master_fd)
     {
-      send(r, command_Str.c_str(), command_Str.length(), 0);
+      for (auto r : cliEntry.replicas)
+      {
+        send(r, command_Str.c_str(), command_Str.length(), 0);
+      }
+      return_msg = "+OK\r\n";
     }
-    return_msg = "+OK\r\n";
   }
   else if (parsed_Arr[2] == "get")
   {

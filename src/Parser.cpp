@@ -14,6 +14,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -24,6 +25,7 @@ const char MINUS_SIGN = '-';
 const char COLON_SIGN = ':';
 
 const std::string delim = "\r\n";
+const std::string empty_rdb = "\x52\x45\x44\x49\x53\x30\x30\x31\x31\xfa\x09\x72\x65\x64\x69\x73\x2d\x76\x65\x72\x05\x37\x2e\x32\x2e\x30\xfa\x0a\x72\x65\x64\x69\x73\x2d\x62\x69\x74\x73\xc0\x40\xfa\x05\x63\x74\x69\x6d\x65\xc2\x6d\x08\xbc\x65\xfa\x08\x75\x73\x65\x64\x2d\x6d\x65\x6d\xc2\xb0\xc4\x10\x00\xfa\x08\x61\x6f\x66\x2d\x62\x61\x73\x65\xc0\x00\xff\xf0\x6e\x3b\xfe\xc0\xff\x5a\xa2";
 
 long long get_time()
 {
@@ -117,6 +119,11 @@ void parse_Array(char *msg, CommandLineEntry &cliEntry, int client_fd)
   else if (parsed_Arr[2] == "psync")
   {
     return_msg = "+FULLRESYNC " + cliEntry.master_replid + " " + std::to_string(cliEntry.master_repl_offset) + delim;
+    if (parsed_Arr[4] == "?" && parsed_Arr[6] == "-1")
+    {
+      std::string rdb_response = "$" + std::to_string(empty_rdb.length()) + delim + empty_rdb;
+      return_msg += rdb_response;
+    }
   }
   else
   {
@@ -128,6 +135,12 @@ void parse_Array(char *msg, CommandLineEntry &cliEntry, int client_fd)
             << std::endl;
   std::cout << send(client_fd, return_msg.c_str(), return_msg.length(), 0)
             << std::endl;
+  /* if (parsed_Arr[2] == "psync")
+  {
+    std::string rdb_in_bin = hex_to_bin(empty_rdb);
+    std::string rdb_response = "$" + std::to_string(rdb_in_bin.length()) + delim + rdb_in_bin;
+    send(client_fd, rdb_response.c_str(), rdb_response.size(), 0);
+  } */
 }
 
 void parse_msg(char *msg, CommandLineEntry &cliEntry, int client_fd)

@@ -143,12 +143,6 @@ void parse_Array(char *msg, CommandLineEntry &cliEntry, int client_fd)
             << std::endl;
   std::cout << send(client_fd, return_msg.c_str(), return_msg.length(), 0)
             << std::endl;
-  /* if (parsed_Arr[2] == "psync")
-  {
-    std::string rdb_in_bin = hex_to_bin(empty_rdb);
-    std::string rdb_response = "$" + std::to_string(rdb_in_bin.length()) + delim + rdb_in_bin;
-    send(client_fd, rdb_response.c_str(), rdb_response.size(), 0);
-  } */
 }
 
 void parse_msg(char *msg, CommandLineEntry &cliEntry, int client_fd)

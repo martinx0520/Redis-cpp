@@ -7,20 +7,25 @@
 #include <string>
 #include <vector>
 
-struct Entry {
+struct Entry
+{
   std::string length;
   std::string value;
   long long expiry;
 };
 
-class CommandHandler {
+class CommandHandler
+{
 public:
   Config config;
-  ParsedCommand parsed_commands;
-  std::vector<std::string> replicas;
+  bool isReplica;
   std::map<std::string, Entry> data_store;
 
-  void process_commands();
+  CommandHandler(Config config, bool isReplica = false) : config(std::move(config)), isReplica(isReplica){};
+
+  std::string process_commands(ParsedCommand &pc);
+
+  bool is_write(std::string &command);
 };
 
 #endif

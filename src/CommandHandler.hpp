@@ -5,23 +5,21 @@
 #include "Parser.hpp"
 #include <map>
 #include <string>
-#include <vector>
 
-struct Entry
-{
+struct Entry {
   std::string length;
   std::string value;
   long long expiry;
 };
 
-class CommandHandler
-{
+class CommandHandler {
 public:
   Config config;
   bool isReplica;
   std::map<std::string, Entry> data_store;
 
-  CommandHandler(Config config, bool isReplica = false) : config(std::move(config)), isReplica(isReplica){};
+  CommandHandler(Config config, bool isReplica = false)
+      : config(std::move(config)), isReplica(isReplica){};
 
   std::string process_commands(ParsedCommand &pc);
 

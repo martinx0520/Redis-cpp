@@ -1,26 +1,19 @@
 #ifndef SERVER_H
 #define SERVER_H
 
-#include "Config.hpp"
-#include "Parser.hpp"
 #include "CommandHandler.hpp"
+#include "Config.hpp"
 #include <arpa/inet.h>
-#include <csignal>
-#include <cstring>
-#include <iostream>
+#include <mutex>
 #include <netdb.h>
 #include <string>
 #include <sys/socket.h>
 #include <sys/types.h>
-#include <thread>
 #include <unistd.h>
-#include <vector>
 #include <unordered_map>
-#include <mutex>
 
 const std::string delim = "\r\n";
-struct Replica
-{
+struct Replica {
   int fd;
   int port;
   std::string host;
@@ -36,8 +29,7 @@ struct Replica
         last_sync_time(std::chrono::steady_clock::now()) {}
 };
 
-class Server
-{
+class Server {
 public:
   Config config;
   int host_fd;
@@ -45,8 +37,12 @@ public:
   bool isReplica;
   std::unordered_map<int, Replica> replicas;
   std::mutex replicasMutex;
+  CommandHandler RespHandler;
+  std::mutex commandHandlerMutex;
 
-  Server(Config config, bool isReplica = false) : config(std::move(config)), isReplica(isReplica){};
+  Server(Config config, CommandHandler RespHandler, bool isReplica = false)
+      : config(std::move(config)), RespHandler(std::move(RespHandler)),
+        isReplica(isReplica){};
 
   bool start();
   void request_handler(int client_fd);

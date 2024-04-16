@@ -2,18 +2,15 @@
 #include <algorithm>
 #include <arpa/inet.h>
 #include <cctype>
-#include <chrono>
 #include <cstddef>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
-#include <map>
 #include <netdb.h>
 #include <string>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <utility>
 #include <vector>
 
 const char DOLLAR_SIGN = '$';
@@ -24,7 +21,7 @@ const char COLON_SIGN = ':';
 
 const std::string delim = "\r\n";
 
-ParsedCommand Parser::parse_Array(char *msg) {
+ParsedCommand Parser::parse_Array(const char *msg) {
   std::string command_Str(msg), word, command;
   std::vector<std::string> parsed_Args;
   int cnt = 0;
@@ -37,7 +34,7 @@ ParsedCommand Parser::parse_Array(char *msg) {
     std::transform(word.begin(), word.end(), word.begin(), ::tolower);
     if (cnt == 2) {
       command = word;
-    } else if (cnt % 2 == 0) {
+    } else if (cnt > 0 && cnt % 2 == 0) {
       parsed_Args.push_back(word);
     }
     cnt++;
@@ -46,7 +43,7 @@ ParsedCommand Parser::parse_Array(char *msg) {
   return ParsedCommand{command, parsed_Args};
 }
 
-ParsedCommand Parser::parse_msg(char *msg) {
+ParsedCommand Parser::parse_msg(const char *msg) {
   char fb = msg[0];
   ParsedCommand temp;
   switch (fb) {
@@ -61,7 +58,6 @@ ParsedCommand Parser::parse_msg(char *msg) {
   case COLON_SIGN:
     return temp;
   default:
-    std::cerr << "Not a Redis Command\n";
-    return temp;
+    return parse_Array(msg);
   }
 }

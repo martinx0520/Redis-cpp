@@ -11,9 +11,9 @@ struct ParsedCommand {
 
 class Parser {
 public:
-  ParsedCommand parse_msg(char *msg);
+  ParsedCommand parse_msg(const char *msg);
 
-  ParsedCommand parse_Array(char *msg);
+  ParsedCommand parse_Array(const char *msg);
 };
 
 #endif

@@ -27,6 +27,8 @@ void Server::request_handler(int client_fd) {
       break;
     }
 
+    std::lock_guard<std::mutex> lock(this->commandHandlerMutex);
+
     std::vector<std::string> splitted_commands =
         split(std::string(buffer), '*');
 
@@ -48,7 +50,6 @@ void Server::request_handler(int client_fd) {
         propagate_commands(std::string(buffer));
       }
 
-      std::lock_guard<std::mutex> lock(this->commandHandlerMutex);
       std::string return_msg = this->RespHandler.process_commands(pc);
 
       std::cout << "Response from client"

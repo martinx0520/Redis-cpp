@@ -1,14 +1,19 @@
-#include "CommandHandler.hpp"
 #include "Config.hpp"
+#include "Parser.hpp"
 #include "Server.hpp"
 #include <arpa/inet.h>
 #include <csignal>
+#include <iostream>
 #include <netdb.h>
+#include <string>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <thread>
 #include <unistd.h>
+#include <vector>
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
   signal(SIGPIPE, SIG_IGN);
 
   Config serverConfig;
@@ -18,7 +23,8 @@ int main(int argc, char *argv[]) {
 
   Server server(serverConfig, RespHandler, serverConfig.role == "slave");
 
-  if (!server.start()) {
+  if (!server.start())
+  {
     return 1;
   }
 

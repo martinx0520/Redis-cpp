@@ -6,13 +6,15 @@
 #include <map>
 #include <string>
 
-struct Entry {
+struct Entry
+{
   std::string length;
   std::string value;
   long long expiry;
 };
 
-class CommandHandler {
+class CommandHandler
+{
 public:
   Config config;
   bool isReplica;
@@ -21,7 +23,7 @@ public:
   CommandHandler(Config config, bool isReplica = false)
       : config(std::move(config)), isReplica(isReplica){};
 
-  std::string process_commands(ParsedCommand &pc, int client_fd);
+  std::string process_commands(ParsedCommand &pc, int client_fd, int command_bytes, bool from_master = false);
 
   bool is_write(std::string &command);
 };

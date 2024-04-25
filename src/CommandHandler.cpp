@@ -4,6 +4,7 @@
 #include <string>
 #include <sys/socket.h>
 #include <vector>
+#include <iostream>
 const std::string empty_rdb =
     "\x52\x45\x44\x49\x53\x30\x30\x31\x31\xfa\x09\x72\x65\x64\x69\x73\x2d\x76"
     "\x65\x72\x05\x37\x2e\x32\x2e\x30\xfa\x0a\x72\x65\x64\x69\x73\x2d\x62\x69"
@@ -19,11 +20,12 @@ long long get_time()
       .count();
 }
 
-std::string CommandHandler::process_commands(ParsedCommand &pc, int client_fd)
+std::string CommandHandler::process_commands(ParsedCommand &pc, int client_fd, int command_bytes, bool from_master)
 {
-
+  std::cout << "command: " << pc.command << std::endl;
   std::string return_msg{};
   int args_Len = pc.command_args.size();
+
   if (pc.command == "ping")
   {
     return_msg = "+PONG\r\n";
@@ -96,7 +98,7 @@ std::string CommandHandler::process_commands(ParsedCommand &pc, int client_fd)
       return_msg = return_msg + "*" + std::to_string(args.size()) + delim;
       for (auto s : args)
       {
-        return_msg = return_msg +"$" + std::to_string(s.length()) + delim + s + delim;
+        return_msg = return_msg + "$" + std::to_string(s.length()) + delim + s + delim;
       }
     }
     else
@@ -106,8 +108,7 @@ std::string CommandHandler::process_commands(ParsedCommand &pc, int client_fd)
   }
   else if (pc.command == "psync")
   {
-    return_msg = "+FULLRESYNC " + this->config.master_replid + " " +
-                 std::to_string(this->config.master_repl_offset) + delim;
+    return_msg = "+FULLRESYNC " + this->config.master_replid + " " + "0" + delim;
     send(client_fd, return_msg.c_str(), return_msg.length(), 0);
     return_msg = "+\r\n";
     if (pc.command_args[0] == "?" && pc.command_args[1] == "-1")
@@ -120,6 +121,12 @@ std::string CommandHandler::process_commands(ParsedCommand &pc, int client_fd)
     return_msg = "+\r\n";
   }
 
+  if (from_master)
+  {
+    this->config.master_repl_offset += command_bytes;
+    if (pc.command != "replconf" && pc.command != "info")
+      return "";
+  }
   return return_msg;
 }
 

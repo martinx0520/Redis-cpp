@@ -4,16 +4,25 @@
 #include <iostream>
 #include <sstream>
 #include <thread>
+#include <regex>
 
-std::vector<std::string> split(const std::string &s, char delimiter)
+std::vector<std::string> split(const std::string &s, const std::regex pattern)
 {
   std::vector<std::string> tokens;
-  std::string token;
-  std::istringstream tokenStream(s);
-  while (std::getline(tokenStream, token, delimiter))
+  std::string word;
+  std::sregex_iterator begin(s.begin(), s.end(), pattern);
+  std::sregex_iterator end;
+
+  size_t pos_st = 0;
+  for (std::sregex_iterator i = begin; i != end; ++i)
   {
-    tokens.push_back(token);
+    std::smatch match = *i;
+    word = s.substr(pos_st, match.position() - pos_st);
+    pos_st = match.position();
+    tokens.push_back(word);
   }
+  word = s.substr(pos_st, s.length() - pos_st);
+  tokens.push_back(word);
   return tokens;
 }
 
@@ -23,25 +32,25 @@ void Server::request_handler(int client_fd)
 
   while (true)
   {
-    int recvStatus = recv(client_fd, buffer, sizeof(buffer), 0);
-    if (recvStatus < 0)
+    int recvBytes = recv(client_fd, buffer, sizeof(buffer), 0);
+    if (recvBytes < 0)
     {
       std::cerr << "Failed to receive from socket\n";
       break;
     }
-    else if (recvStatus == 0)
+    else if (recvBytes == 0)
     {
       break;
     }
+    std::regex pattern(R"(\*[0-9])");
+    std::string buffer_Str = std::string(buffer, recvBytes);
 
-    std::string buffer_Str = std::string(buffer, recvStatus);
-    
     std::cout << "Message received: " << buffer_Str << std::endl;
 
     std::lock_guard<std::mutex> lock(this->commandHandlerMutex);
 
     std::vector<std::string> splitted_commands =
-        split(buffer_Str, '*');
+        split(buffer_Str, pattern);
 
     for (int i = 0; i < splitted_commands.size(); ++i)
     {
@@ -63,11 +72,14 @@ void Server::request_handler(int client_fd)
         propagate_commands(std::string(buffer));
       }
 
-      std::string return_msg = this->RespHandler.process_commands(pc, client_fd);
+      std::string return_msg = this->RespHandler.process_commands(pc, client_fd, splitted_commands[i].length(), client_fd == this->config.master_fd);
 
-      std::cout << "Response from client"
-                << ": " << return_msg << std::endl;
-      send(client_fd, return_msg.c_str(), return_msg.length(), 0);
+      if (return_msg != "")
+      {
+        std::cout << "Response from client"
+                  << ": " << return_msg << std::endl;
+        send(client_fd, return_msg.c_str(), return_msg.length(), 0);
+      }
     }
   }
 
@@ -159,6 +171,7 @@ void Server::command_loop()
 bool Server::connect_master()
 {
   int master_fd = socket(AF_INET, SOCK_STREAM, 0);
+  this->config.master_fd = master_fd;
 
   if (master_fd < 0)
   {
@@ -237,11 +250,6 @@ bool Server::initiate_handshake(int master_fd)
     res_psync += "$" + std::to_string(s.length()) + delim + s + delim;
   }
   send(master_fd, res_psync.c_str(), res_psync.size(), 0);
-  /* recv_msg = recv(master_fd, hsBuffer, sizeof(hsBuffer), 0);
-  std::cout<<"Bytes received: "<<recv_msg<<std::endl;
-  std::string buffer_Str = std::string(hsBuffer, recv_msg);
-    
-  std::cout << "Return Message received: " << buffer_Str << std::endl; */
 
   std::thread t(&Server::request_handler, this, master_fd);
   t.detach();

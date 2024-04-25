@@ -116,6 +116,10 @@ std::string CommandHandler::process_commands(ParsedCommand &pc, int client_fd, i
       return_msg = "$" + std::to_string(empty_rdb.length()) + delim + empty_rdb;
     }
   }
+  else if (pc.command == "wait")
+  {
+    return_msg = ":0" + delim;
+  }
   else
   {
     return_msg = "+\r\n";

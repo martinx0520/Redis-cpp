@@ -23,7 +23,7 @@ public:
   CommandHandler(Config config, bool isReplica = false)
       : config(std::move(config)), isReplica(isReplica){};
 
-  std::string process_commands(ParsedCommand &pc, int client_fd, int command_bytes, bool from_master = false);
+  std::string process_commands(ParsedCommand &pc, int client_fd, int command_bytes, int replicas_cnt, bool from_master = false);
 
   bool is_write(std::string &command);
 };

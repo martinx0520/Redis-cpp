@@ -72,7 +72,7 @@ void Server::request_handler(int client_fd)
         propagate_commands(std::string(buffer));
       }
 
-      std::string return_msg = this->RespHandler.process_commands(pc, client_fd, splitted_commands[i].length(), client_fd == this->config.master_fd);
+      std::string return_msg = this->RespHandler.process_commands(pc, client_fd, splitted_commands[i].length(), this->replicas.size(), client_fd == this->config.master_fd);
 
       if (return_msg != "")
       {

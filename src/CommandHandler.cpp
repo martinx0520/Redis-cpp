@@ -20,7 +20,7 @@ long long get_time()
       .count();
 }
 
-std::string CommandHandler::process_commands(ParsedCommand &pc, int client_fd, int command_bytes, bool from_master)
+std::string CommandHandler::process_commands(ParsedCommand &pc, int client_fd, int command_bytes, int replicas_cnt, bool from_master)
 {
   std::cout << "command: " << pc.command << std::endl;
   std::string return_msg{};
@@ -118,7 +118,7 @@ std::string CommandHandler::process_commands(ParsedCommand &pc, int client_fd, i
   }
   else if (pc.command == "wait")
   {
-    return_msg = ":0" + delim;
+    return_msg = ":" + std::to_string(replicas_cnt) + delim;
   }
   else
   {
